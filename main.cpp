@@ -1,20 +1,24 @@
-#include <SFML/Graphics.hpp>
+#include <iostream>
+#include "Window.h"
 
 int main()
 {
-    sf::RenderWindow window(sf::VideoMode(800, 600), "Game!", sf::Style::Titlebar | sf::Style::Close);
-	sf::Event ev;
+	//Init srand
+	std::srand(static_cast<unsigned>(time(NULL)));
 
-	while (window.isOpen())
+	//Init Game engine
+	Game game;
+
+	//Game loop
+	while (game.running() && !game.getEndGame())
 	{
-		while (window.pollEvent(ev))
-		{
-			if (ev.type == sf::Event::Closed)
-				window.close();
-		}
+		//Update
+		game.update();
 
-		window.clear();
-		window.display();
+		//Render
+		game.render();
 	}
-    return 0;
+
+	//End of application
+	return 0;
 }
