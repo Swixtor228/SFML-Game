@@ -31,16 +31,18 @@ private:
 	//Text
 	sf::Text uiText;
 	sf::Text uiLoseGame;
+	sf::Text uiPause;
 	std::string difficult;
 
 	//Game logic
 	bool endGame;
+	bool isGamePaused;
+	bool mouseHeld;
 	unsigned points;
 	int health;
+	int maxEnemies;
 	float enemySpawnTimer;
 	float enemySpawnTimerMax;
-	int maxEnemies;
-	bool mouseHeld;
 
 	//Game objects
 	std::vector<sf::RectangleShape> enemies;

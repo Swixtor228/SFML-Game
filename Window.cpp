@@ -6,26 +6,28 @@ void Game::initVariables()
 	this->window				= nullptr;
 
 	//Game logic
-	this->endGame				= false;
 	this->points				= 0;
 	this->health				= 1;
 	this->enemySpawnTimerMax	= 80.f;
-	this->enemySpawnTimer		= this->enemySpawnTimerMax;
 	this->maxEnemies			= 5;
+	this->endGame				= false;
 	this->mouseHeld				= false;
+	this->isGamePaused			= false;
+	this->enemySpawnTimer		= this->enemySpawnTimerMax;
 	this->difficult				= "Very Easy";
 }
 
 void Game::restartGame()
 {
-	this->endGame = false;
-	this->points = 0;
-	this->health = 1;
-	this->enemySpawnTimerMax = 80.f;
-	this->enemySpawnTimer = this->enemySpawnTimerMax;
-	this->maxEnemies = 5;
-	this->mouseHeld = false;
-	this->difficult = "Very Easy";
+	this->points				= 0;
+	this->health				= 1;
+	this->enemySpawnTimerMax	= 80.f;
+	this->maxEnemies			= 5;
+	this->endGame				= false;
+	this->mouseHeld				= false;
+	this->isGamePaused			= false;
+	this->enemySpawnTimer		= this->enemySpawnTimerMax;
+	this->difficult				= "Very Easy";
 	this->enemies.clear();
 }
 
@@ -59,6 +61,12 @@ void Game::initText()
 	this->uiLoseGame.setFillColor(sf::Color::Red);
 	this->uiLoseGame.setPosition(sf::Vector2f(this->window->getSize().x / 2 - 286 / 2, this->window->getSize().y / 2 - 70 / 2));
 	this->uiLoseGame.setString("    GAME OVER\nPress R to restart");
+
+	this->uiPause.setFont(this->font);
+	this->uiPause.setCharacterSize(36);
+	this->uiPause.setFillColor(sf::Color::Red);
+	this->uiPause.setPosition(sf::Vector2f(this->window->getSize().x / 2 - 286 / 2, this->window->getSize().y / 2 - 70 / 2));
+	this->uiPause.setString("    GAME PAUSE");
 }
 
 void Game::initEnemies()
@@ -186,10 +194,11 @@ void Game::pollEvents()
 			this->window->close();
 			break;
 		case sf::Event::KeyPressed:
-			if (this->ev.key.code == sf::Keyboard::Escape)
-				this->window->close();
 			if (this->endGame && this->ev.key.code == sf::Keyboard::R)
 				this->restartGame();
+			if (!this->endGame && this->ev.key.code == sf::Keyboard::Escape) {
+				(!this->isGamePaused) ? this->isGamePaused = true : this->isGamePaused = false;
+			}
 			break;
 		}
 	}
@@ -214,88 +223,86 @@ void Game::updateText()
 
 void Game::updateEnemies()
 {
-	if (!this->getEndGame())
+	if (!this->isGamePaused)
 	{
-		if (window->hasFocus()) {
-			//Updating the timer for enemy spawning
-			if (this->enemies.size() < this->maxEnemies)
-			{
-				if (this->enemySpawnTimer >= this->enemySpawnTimerMax)
-				{
-					//Spawn the enemy and reset the timer
-					this->spawnEnemy();
-					this->enemySpawnTimer = 0.f;
-				}
-				else
-					this->enemySpawnTimer += 1.f;
-			}
 
-			//Moving and updating enemies
-			for (int i = 0; i < this->enemies.size(); i++)
+		//Updating the timer for enemy spawning
+		if (this->enemies.size() < this->maxEnemies)
+		{
+			if (this->enemySpawnTimer >= this->enemySpawnTimerMax)
 			{
+				//Spawn the enemy and reset the timer
+				this->spawnEnemy();
+				this->enemySpawnTimer = 0.f;
+			}
+			else
+				this->enemySpawnTimer += 1.f;
+		}
+
+		//Moving and updating enemies
+		for (int i = 0; i < this->enemies.size(); i++)
+		{
+			bool deleted = false;
+
+			this->enemies[i].move(0.f, 5.f);
+
+			if (this->enemies[i].getPosition().y > this->window->getSize().y)
+			{
+				this->enemies.erase(this->enemies.begin() + i);
+				this->health -= 1;
+				std::cout << "Health: " << this->health << "\n";
+			}
+		}
+
+		//Check if clicked upon
+		if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+		{
+			if (this->mouseHeld == false)
+			{
+				this->mouseHeld = true;
 				bool deleted = false;
-
-				this->enemies[i].move(0.f, 5.f);
-
-				if (this->enemies[i].getPosition().y > this->window->getSize().y)
+				for (size_t i = 0; i < this->enemies.size() && deleted == false; i++)
 				{
-					this->enemies.erase(this->enemies.begin() + i);
-					this->health -= 1;
-					std::cout << "Health: " << this->health << "\n";
-				}
-			}
-
-			//Check if clicked upon
-			if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
-			{
-				if (this->mouseHeld == false)
-				{
-					this->mouseHeld = true;
-					bool deleted = false;
-					for (size_t i = 0; i < this->enemies.size() && deleted == false; i++)
+					if (this->enemies[i].getGlobalBounds().contains(this->mousePosView))
 					{
-						if (this->enemies[i].getGlobalBounds().contains(this->mousePosView))
-						{
-							//Gain points
-							if (this->enemies[i].getFillColor() == sf::Color::Magenta)
-								this->points += 10;
-							else if (this->enemies[i].getFillColor() == sf::Color::Blue)
-								this->points += 7;
-							else if (this->enemies[i].getFillColor() == sf::Color::Cyan)
-								this->points += 5;
-							else if (this->enemies[i].getFillColor() == sf::Color::Red)
-								this->points += 3;
-							else if (this->enemies[i].getFillColor() == sf::Color::Green)
-								this->points += 1;
+						//Gain points
+						if (this->enemies[i].getFillColor() == sf::Color::Magenta)
+							this->points += 10;
+						else if (this->enemies[i].getFillColor() == sf::Color::Blue)
+							this->points += 7;
+						else if (this->enemies[i].getFillColor() == sf::Color::Cyan)
+							this->points += 5;
+						else if (this->enemies[i].getFillColor() == sf::Color::Red)
+							this->points += 3;
+						else if (this->enemies[i].getFillColor() == sf::Color::Green)
+							this->points += 1;
 
-							this->changeDifficult();
-							std::cout << "Points: " << this->points << "\n";
+						this->changeDifficult();
+						std::cout << "Points: " << this->points << "\n";
 
-							//Delete the enemy
-							deleted = true;
-							this->enemies.erase(this->enemies.begin() + i);
-						}
+						//Delete the enemy
+						deleted = true;
+						this->enemies.erase(this->enemies.begin() + i);
 					}
 				}
 			}
-			else
-			{
-				this->mouseHeld = false;
-			}
 		}
+		else		
+			this->mouseHeld = false;	
 	}
 }
 
 void Game::update()
 {
+	if (!this->window->hasFocus())
+		this->isGamePaused = true;
+
 	this->pollEvents();
 
 	if (this->endGame == false)
 	{
 		this->updateMousePositions();
-
 		this->updateText();
-
 		this->updateEnemies();
 	}
 
@@ -310,6 +317,9 @@ void Game::renderText(sf::RenderTarget& target)
 
 	if (this->getEndGame())
 		target.draw(this->uiLoseGame);
+
+	if (this->isGamePaused)
+		target.draw(this->uiPause);
 }
 
 void Game::renderEnemies(sf::RenderTarget& target)
