@@ -30,6 +30,7 @@ private:
 
 	//Text
 	sf::Text uiText;
+	sf::Text uiLoseGame;
 	std::string difficult;
 
 	//Game logic
@@ -52,7 +53,7 @@ private:
 	void initText();
 	void initEnemies();
 	void changeDifficult();
-
+	void restartGame();
 public:
 	//Constructors / Destructors
 	Game();
